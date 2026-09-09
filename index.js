@@ -606,7 +606,8 @@ async function main() {
     process.exit(1);
   }
 
-  const ownId = await zaloApi.getOwnId().catch(() => "?");
+  // zca-js: getOwnId() tra ve chuoi dong bo — Promise.resolve de an toan voi ca hai kieu
+  const ownId = await Promise.resolve(zaloApi.getOwnId()).catch(() => "?");
   const profile = await zaloApi.fetchAccountInfo().catch(() => null);
   const displayName = profile && profile.profile ? profile.profile.displayName || profile.profile.name : "?";
   console.log(`[zalo] Da dang nhap: ${displayName} (ID: ${ownId})`);

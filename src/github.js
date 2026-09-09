@@ -29,7 +29,8 @@ function ghRequest(method, pathOrUrl, token, body = null) {
   } else if (!pathOrUrl.startsWith("/")) {
     reqPath = `/${pathOrUrl}`;
   }
-  return new Promise((resolve, reject) => https.request(
+  return new Promise((resolve, reject) => {
+    const req = https.request(
     {
       hostname,
       path: reqPath,
@@ -59,7 +60,12 @@ function ghRequest(method, pathOrUrl, token, body = null) {
         resolve({ status: res.statusCode, data, headers: res.headers });
       });
     }
-  ).on("error", reject));
+    );
+    req.setTimeout(30000, () => req.destroy(new Error("GitHub request timeout (30s)")));
+    req.on("error", reject);
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
 }
 
 class GitHubClient {
