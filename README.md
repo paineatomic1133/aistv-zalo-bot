@@ -61,7 +61,18 @@ Yêu cầu Node.js >= 18.
 
 ## Deploy (Railway)
 
-`railway.json` đã cấu hình sẵn Dockerfile + healthcheck `/health`. Bot tự phát hiện `RAILWAY_PUBLIC_DOMAIN` qua biến môi trường `BOT_WEBHOOK_URL` nếu cần.
+1. Push repo này lên GitHub, vào [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo** → chọn repo
+2. Thêm **Variables** (vì `bot_config.json` không được commit):
+
+| Biến | Giá trị |
+|------|---------|
+| `ZALO_IMEI` | IMEI từ Zalo Web |
+| `ZALO_COOKIE` | Cookie JSON (object phẳng hoặc mảng) |
+| `ZALO_USER_AGENT` | userAgent trình duyệt |
+| `ADMIN_GITHUB_TOKEN` | GitHub PAT (repo + workflow) |
+| `ADMIN_TAILSCALE_KEY` | Tailscale auth key |
+
+3. Bot tự nhận `PORT` và tự đặt `BOT_WEBHOOK_URL` từ `RAILWAY_PUBLIC_DOMAIN` — GitHub Actions sẽ POST thông tin máy về bot tức thì.
 
 ## Cấu trúc
 
