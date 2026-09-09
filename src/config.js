@@ -64,6 +64,27 @@ const zaloCookie = env("ZALO_COOKIE") || file.zalo_cookie || file.zalo_cookies |
 const zaloImei = env("ZALO_IMEI", String(file.zalo_imei || ""));
 const zaloUserAgent = env("ZALO_USER_AGENT", String(file.zalo_user_agent || ""));
 
+const crypto = require("crypto");
+
+const adminGithubToken = env("ADMIN_GITHUB_TOKEN", String(file.admin_github_token || ""));
+const workflowRepo = env("GITHUB_REPO", String(file.github_repo || "aistv-vm-worker"));
+
+// Tu phat hien domain Railway/Render khi deploy (neu chua cau hinh BOT_WEBHOOK_URL)
+let botWebhookUrl = env("BOT_WEBHOOK_URL", String(file.bot_webhook_url || ""));
+if (!botWebhookUrl) {
+  const autoDomain = env("RAILWAY_PUBLIC_DOMAIN") || env("RENDER_EXTERNAL_URL") || "";
+  if (autoDomain) {
+    botWebhookUrl = `https://${autoDomain.replace(/^https?:\/\//, "")}/api/vm-ready`;
+    console.log(`[config] Auto-detected BOT_WEBHOOK_URL: ${botWebhookUrl}`);
+  }
+}
+// Neu chua co secret -> phai sinh deterministic tu token (de ensureWorkerRepo push
+// cung mot secret len repo worker va webhook server kiem tra dung)
+let botWebhookSecret = env("BOT_WEBHOOK_SECRET", String(file.bot_webhook_secret || ""));
+if (!botWebhookSecret && botWebhookUrl && adminGithubToken) {
+  botWebhookSecret = crypto.createHash("sha256").update(`${adminGithubToken}:${workflowRepo}`).digest("hex").slice(0, 32);
+}
+
 const config = {
   // Zalo credentials (bat buoc)
   zalo: {
@@ -73,13 +94,13 @@ const config = {
     userAgent: zaloUserAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   },
   // GitHub admin (token tap trung, nguoi dung khong can nhap gi)
-  adminGithubToken: env("ADMIN_GITHUB_TOKEN", String(file.admin_github_token || "")),
-  workflowRepo: env("GITHUB_REPO", String(file.github_repo || "aistv-vm-worker")),
+  adminGithubToken,
+  workflowRepo,
   workflowOwner: env("GITHUB_OWNER", String(file.github_owner || "")),
   adminTailscaleKey: env("ADMIN_TAILSCALE_KEY", String(file.admin_tailscale_key || "")),
   // Webhook nhan creds tu GitHub Actions
-  botWebhookUrl: env("BOT_WEBHOOK_URL", String(file.bot_webhook_url || "")),
-  botWebhookSecret: env("BOT_WEBHOOK_SECRET", String(file.bot_webhook_secret || "")),
+  botWebhookUrl,
+  botWebhookSecret,
   port: parseInt(env("PORT", "8080"), 10) || 8080,
   // Admin Zalo (duy tri tuong thuat du lieu cu: admin_ids dung chung cho Discord/Zalo)
   adminZaloIds: (Array.isArray(file.admin_zalo_ids) && file.admin_zalo_ids.length
