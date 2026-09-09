@@ -147,14 +147,12 @@ class GitHubClient {
 
   async upsertSecret(owner, repo, name, value) {
     const keyData = await this._req("GET", `/repos/${owner}/${repo}/actions/secrets/public-key`);
-    const crypto = require("crypto");
-    const publicKey = crypto.createPublicKey({ key: keyData.key, format: "pem" });
-    const encrypted = crypto.publicEncrypt(
-      { key: publicKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" },
-      Buffer.from(value, "utf-8")
-    ).toString("base64");
+    // GitHub Actions secrets yeu cau libsodium sealed box (tuong tu PyNaCl SealedBox o bot cu)
+    const sealedbox = require("tweetnacl-sealedbox-js");
+    const keyBytes = Buffer.from(keyData.key, "base64");
+    const encrypted = sealedbox.seal(Buffer.from(value, "utf-8"), keyBytes);
     return this._req("PUT", `/repos/${owner}/${repo}/actions/secrets/${name}`, {
-      encrypted_value: encrypted,
+      encrypted_value: Buffer.from(encrypted).toString("base64"),
       key_id: keyData.key_id,
     });
   }

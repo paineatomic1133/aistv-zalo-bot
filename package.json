@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
+    "tweetnacl-sealedbox-js": "^1.2.0",
     "zca-js": "^2.0.0"
   }
 }
