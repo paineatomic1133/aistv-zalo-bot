@@ -1,0 +1,17 @@
+{
+  "name": "aistv-vm-zalo-bot",
+  "version": "1.0.0",
+  "description": "AI STV VM Bot for Zalo — tao Windows VM tam thoi qua GitHub Actions",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "zca-js": "^2.0.0"
+  }
+}

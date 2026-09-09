@@ -1,0 +1,5 @@
+node_modules/
+bot_config.json
+vm_bot_data/
+*.log
+.env

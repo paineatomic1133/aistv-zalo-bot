@@ -1,0 +1,72 @@
+# Auto-generated — AI STV
+# Worker: Windows VM (RDP + Tailscale). Triggered via repository_dispatch.
+name: AI STV Windows VM
+on:
+  repository_dispatch:
+    types: [start-vm]
+jobs:
+  aistv-vm:
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        include: ${{ github.event.client_payload.matrix }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Connect Tailscale
+        shell: pwsh
+        env:
+          TAILSCALE_AUTH_KEY: ${{ secrets.TAILSCALE_AUTH_KEY }}
+          INSTANCE_ID: ${{ matrix.instance_id }}
+        run: |
+          $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
+          if (-not (Test-Path -LiteralPath $tsExe)) {
+            $exe = Join-Path $env:RUNNER_TEMP "tailscale-setup.exe"
+            Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-full-1.98.4.exe" -OutFile $exe -UseBasicParsing -TimeoutSec 120
+            Start-Process -FilePath $exe -ArgumentList @("/quiet") -Wait -PassThru -NoNewWindow
+            Start-Sleep -Seconds 5
+          }
+          $tsRunId = if ($env:GITHUB_RUN_ID) { $env:GITHUB_RUN_ID } else { '0' }
+          & $tsExe up --authkey=$env:TAILSCALE_AUTH_KEY --hostname=STV-VM-$tsRunId --accept-routes=false --accept-dns=false --timeout=90s 2>&1
+      - name: Provision VM
+        timeout-minutes: 25
+        shell: pwsh
+        env:
+          INSTANCE_ID: ${{ matrix.instance_id }}
+          VM_DURATION_MINUTES: ${{ github.event.client_payload.duration }}
+          DISCORD_ID: ${{ github.event.client_payload.session }}
+        run: |
+          & ./scripts/provision.ps1
+      - name: Upload VM credentials
+        uses: actions/upload-artifact@v4
+        with:
+          name: aistv-creds-${{ matrix.instance_id }}
+          path: vm-creds.json
+          if-no-files-found: warn
+          retention-days: 1
+      - name: Notify Bot via Webhook
+        if: always()
+        shell: bash
+        env:
+          BOT_WEBHOOK_URL: ${{ secrets.BOT_WEBHOOK_URL }}
+          BOT_WEBHOOK_SECRET: ${{ secrets.BOT_WEBHOOK_SECRET }}
+        run: |
+          URL="${BOT_WEBHOOK_URL:-}"
+          if [ -z "$URL" ] || [ ! -f vm-creds.json ]; then
+            echo "skip webhook: not configured or no creds file"
+            exit 0
+          fi
+          curl -sS -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Bot-Secret: ${BOT_WEBHOOK_SECRET:-}" \
+            --data-binary @vm-creds.json \
+            || echo "Bot webhook notify failed (polling will catch it)"
+      - name: Keep-Alive
+        shell: pwsh
+        env:
+          INSTANCE_ID: ${{ matrix.instance_id }}
+          VM_DURATION_MINUTES: ${{ github.event.client_payload.duration }}
+        run: |
+          & ./scripts/keepalive.ps1
