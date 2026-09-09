@@ -153,16 +153,17 @@ let ghOwner = "";
 async function resolveGhOwner() {
   if (config.workflowOwner) {
     ghOwner = config.workflowOwner;
-    return ghOwner;
+  } else {
+    const meta = store.getMeta();
+    if (meta.adminLogin) {
+      ghOwner = meta.adminLogin;
+    } else {
+      const me = await gh.getAuthenticatedUser();
+      ghOwner = me.login;
+      store.setMeta({ adminLogin: ghOwner });
+    }
   }
-  const meta = store.getMeta();
-  if (meta.adminLogin) {
-    ghOwner = meta.adminLogin;
-    return ghOwner;
-  }
-  const me = await gh.getAuthenticatedUser();
-  ghOwner = me.login;
-  store.setMeta({ adminLogin: ghOwner });
+  gh.owner = ghOwner; // dong bo vao client de ensureWorkerRepo su dung
   return ghOwner;
 }
 
