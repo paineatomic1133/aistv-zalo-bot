@@ -235,6 +235,7 @@ function readTemplate(relPath) {
  */
 async function ensureWorkerRepo(gh, store, meta) {
   if (!gh.token) throw new Error("ADMIN_GITHUB_TOKEN chua cau hinh");
+  if (!gh.owner) throw new Error("Chua xac dinh duoc GitHub owner — bo qua setup repo worker");
   if (meta.get("repoReady") === gh.repo && meta.get("repoOwner") === gh.owner && meta.get("repoVersion") === WORKFLOW_VERSION) {
     return;
   }
